@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IPv6 Check</title>
+</head>
+<body>
+    <div id="out"></div>
+    <script>
+        let done = false;
+        const out = document.getElementById('out');
+        let results = [];
+        const controllers = [];
+
+        const sources = [
+            { name: 'ipify', url: 'https://api6.ipify.org?format=json', parse: d => d.ip },
+            { name: 'icanhaz', url: 'https://icanhazip.com', parse: t => t.trim(), text: true },
+            { name: 'aws', url: 'https://checkip.amazonaws.com', parse: t => t.trim(), text: true }
+        ];
+
+        function abortAll() {
+            controllers.forEach(c => { try { c.abort(); } catch(e) {} });
+        }
+
+        function show(text) {
+            out.textContent = text;
+        }
+
+        function isValidIPv6(ip) {
+            if (!ip) return false;
+            const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+            return ipv6Regex.test(ip);
+        }
+
+        function checkAndResolve() {
+            if (done) return true;
+            if (results.length < 2) return false;
+            
+            const firstIp = results[0].ip;
+            let matchCount = 1;
+            for (let i = 1; i < results.length; i++) {
+                if (results[i].ip === firstIp) matchCount++;
+            }
+            
+            if (matchCount >= 2) {
+                done = true;
+                abortAll();
+                show(firstIp);
+                return true;
+            }
+            return false;
+        }
+
+        function fetchIP(source) {
+            if (done) return;
+            
+            const controller = new AbortController();
+            controllers.push(controller);
+            
+            const options = { signal: controller.signal };
+            
+            const handler = (ip) => {
+                if (done) return;
+                if (ip && isValidIPv6(ip)) {
+                    results.push({ ip: ip, source: source.name });
+                    checkAndResolve();
+                } else if (ip && !isValidIPv6(ip) && !done) {
+                    out.textContent = out.textContent ? out.textContent + '\n' + source.name + ': no IPv6' : source.name + ': no IPv6';
+                }
+            };
+            
+            if (source.text) {
+                fetch(source.url, options)
+                    .then(r => r.ok ? r.text() : Promise.reject())
+                    .then(t => handler(source.parse(t)))
+                    .catch(e => { if (e.name !== 'AbortError' && !done) out.textContent = 'IPv6 not detected'; });
+            } else {
+                fetch(source.url, options)
+                    .then(r => r.json())
+                    .then(d => handler(source.parse(d)))
+                    .catch(e => { if (e.name !== 'AbortError' && !done) out.textContent = 'IPv6 not detected'; });
+            }
+        }
+
+        sources.forEach(s => fetchIP(s));
+        
+        setTimeout(() => {
+            if (!done) {
+                done = true;
+                abortAll();
+                if (results.length >= 2) {
+                    const f = results[0].ip;
+                    let allMatch = 1;
+                    for (let i = 1; i < results.length; i++) if (results[i].ip !== f) allMatch = 0;
+                    allMatch ? show(f) : show('Error: conflicting IPv6 addresses');
+                } else if (results.length === 1) {
+                    show(results[0].ip);
+                } else {
+                    show('No IPv6 address detected');
+                }
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
