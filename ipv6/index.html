@@ -64,6 +64,84 @@
                 if (ip && isValidIPv6(ip)) {
                     results.push({ ip: ip, source: source.name });
                     checkAndResolve();
+                } else if (!done) {
+                    results.push({ ip: null, source: source.name });
+                    if (results.length === sources.length && !done) {
+                        done = true;
+                        abortAll();
+                        show('false');
+                    } else {
+                        checkAndResolve();
+                    }
+                }
+            };
+            
+            if (source.text) {
+                fetch(source.url, options)
+                    .then(r => r.ok ? r.text() : Promise.reject())
+                    .then(t => handler(source.parse(t)))
+                    .catch(e => { if (e.name !== 'AbortError' && !done) handler(null); });
+            } else {
+                fetch(source.url, options)
+                    .then(r => r.json())
+                    .then(d => handler(source.parse(d)))
+                    .catch(e => { if (e.name !== 'AbortError' && !done) handler(null); });
+            }
+        }
+
+        sources.forEach(s => fetchIP(s));
+        
+        setTimeout(() => {
+            if (!done) {
+                done = true;
+                abortAll();
+                if (results.length >= 2) {
+                    const validResults = results.filter(r => r.ip && isValidIPv6(r.ip));
+                    if (validResults.length >= 2) {
+                        const f = validResults[0].ip;
+                        let allMatch = 1;
+                        for (let i = 1; i < validResults.length; i++) if (validResults[i].ip !== f) allMatch = 0;
+                        allMatch ? show(f) : show('false');
+                    } else {
+                        show('false');
+                    }
+                } else {
+                    show('false');
+                }
+            }
+        }, 5000);
+    </script>
+</body>
+</html>            if (results.length < 2) return false;
+            
+            const firstIp = results[0].ip;
+            let matchCount = 1;
+            for (let i = 1; i < results.length; i++) {
+                if (results[i].ip === firstIp) matchCount++;
+            }
+            
+            if (matchCount >= 2) {
+                done = true;
+                abortAll();
+                show(firstIp);
+                return true;
+            }
+            return false;
+        }
+
+        function fetchIP(source) {
+            if (done) return;
+            
+            const controller = new AbortController();
+            controllers.push(controller);
+            
+            const options = { signal: controller.signal };
+            
+            const handler = (ip) => {
+                if (done) return;
+                if (ip && isValidIPv6(ip)) {
+                    results.push({ ip: ip, source: source.name });
+                    checkAndResolve();
                 } else if (ip && !isValidIPv6(ip) && !done) {
                     out.textContent = out.textContent ? out.textContent + '\n' + source.name + ': no IPv6' : source.name + ': no IPv6';
                 }
