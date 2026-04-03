@@ -9,13 +9,12 @@
     <script>
         let done = false;
         const out = document.getElementById('out');
-        let results = [];
+        let ips = [];
         const controllers = [];
 
         const sources = [
             { name: 'ipify', url: 'https://api6.ipify.org?format=json', parse: d => d.ip },
-            { name: 'icanhaz', url: 'https://icanhazip.com', parse: t => t.trim(), text: true },
-            { name: 'aws', url: 'https://checkip.amazonaws.com', parse: t => t.trim(), text: true }
+            { name: 'icanhaz', url: 'https://icanhazip.com', parse: t => t.trim(), text: true }
         ];
 
         function abortAll() {
@@ -28,13 +27,71 @@
 
         function isValidIPv6(ip) {
             if (!ip) return false;
-            const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
-            return ipv6Regex.test(ip);
+            return ip.includes(':');
         }
 
-        function checkAndResolve() {
-            if (done) return true;
-            if (results.length < 2) return false;
+        function check() {
+            if (done) return;
+            if (ips.length < 2) return;
+            
+            if (ips[0] === ips[1]) {
+                done = true;
+                abortAll();
+                show(ips[0]);
+            }
+        }
+
+        function fetchIP(source) {
+            if (done) return;
+            
+            const controller = new AbortController();
+            controllers.push(controller);
+            const options = { signal: controller.signal };
+            
+            const success = (ip) => {
+                if (done) return;
+                if (isValidIPv6(ip)) {
+                    ips.push(ip);
+                    check();
+                } else {
+                    done = true;
+                    abortAll();
+                    show('false');
+                }
+            };
+            
+            const fail = () => {
+                if (done) return;
+                done = true;
+                abortAll();
+                show('false');
+            };
+            
+            if (source.text) {
+                fetch(source.url, options)
+                    .then(r => r.ok ? r.text() : Promise.reject())
+                    .then(t => success(source.parse(t)))
+                    .catch(fail);
+            } else {
+                fetch(source.url, options)
+                    .then(r => r.json())
+                    .then(d => success(source.parse(d)))
+                    .catch(fail);
+            }
+        }
+
+        sources.forEach(s => fetchIP(s));
+        
+        setTimeout(() => {
+            if (!done) {
+                done = true;
+                abortAll();
+                show('false');
+            }
+        }, 3000);
+    </script>
+</body>
+</html>            if (results.length < 2) return false;
             
             const firstIp = results[0].ip;
             let matchCount = 1;
