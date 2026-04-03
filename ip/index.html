@@ -2,145 +2,80 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>IPv4 Connection Test</title>
 </head>
 <body>
     <div id="out"></div>
     <script>
         (function(){
-            let done = false;
-            const out = document.getElementById('out');
-            const ips = [];
-            const controllers = [];
-            
-            const sources = [
-                { name: 'ipify', url: 'https://api.ipify.org?format=json', parse: d => d.ip },
-                { name: 'ip-api', url: 'https://ip-api.com/json/?fields=query', parse: d => d.query },
-                { name: 'icanhaz', url: 'https://icanhazip.com', parse: t => t.trim(), text: true }
+            let done=false;
+            const out=document.getElementById('out');
+            const ips=[];
+            const ctrl=[];
+            const src=[
+                {n:'ipify',u:'https://api.ipify.org?format=json',p:d=>d.ip},
+                {n:'ip-api',u:'https://ip-api.com/json/?fields=query',p:d=>d.query},
+                {n:'icanhaz',u:'https://icanhazip.com',p:t=>t.trim(),t:1}
             ];
-            
-            function abortAll(){
-                controllers.forEach(c => { try{ c.abort(); }catch(e){} });
-                controllers.length = 0;
-            }
-            
-            function show(msg){
-                out.textContent = msg;
-            }
-            
-            function append(msg){
-                out.textContent = out.textContent ? out.textContent + '\n' + msg : msg;
-            }
-            
-            function checkMatch(){
-                if(done) return true;
-                if(ips.length < 2) return false;
-                const first = ips[0].ip;
-                let matchCount = 1;
-                for(let i=1; i<ips.length; i++){
-                    if(ips[i].ip === first) matchCount++;
-                }
-                if(matchCount >= 2){
-                    done = true;
-                    abortAll();
-                    show(first);
-                    return true;
-                }
-                return false;
-            }
-            
-            function fetchIP(source, idx){
+            const abortAll=()=>{ctrl.forEach(c=>{try{c.abort()}catch(e){}});ctrl.length=0;};
+            const show=t=>{out.textContent=t;};
+            const match=()=>{
+                if(done) return 1;
+                if(ips.length<2) return 0;
+                const f=ips[0].ip;
+                let cnt=1;
+                for(let i=1;i<ips.length;i++) if(ips[i].ip===f) cnt++;
+                if(cnt>=2){done=1;abortAll();show(f);return 1;}
+                return 0;
+            };
+            const fetchIP=(s)=>{
                 if(done) return;
-                const controller = new AbortController();
-                controllers.push(controller);
-                const signal = controller.signal;
-                
-                const options = { signal };
-                if(source.text){
-                    fetch(source.url, options)
-                        .then(res => {
-                            if(!res.ok) throw new Error();
-                            return res.text();
-                        })
-                        .then(text => {
-                            if(done) return;
-                            const ip = source.parse(text);
-                            if(ip && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)){
-                                ips.push({ ip, source: source.name });
-                                if(!checkMatch()){
-                                    if(ips.length === sources.length && !done){
-                                        const unique = [...new Set(ips.map(i=>i.ip))];
-                                        if(unique.length === 1){
-                                            show(unique[0]);
-                                            done = true;
-                                            abortAll();
-                                        } else {
-                                            show('Error: conflicting IPs: ' + ips.map(i=>i.ip).join(', '));
-                                            done = true;
-                                            abortAll();
-                                        }
-                                    }
-                                }
+                const ac=new AbortController();
+                ctrl.push(ac);
+                const opt={signal:ac.signal};
+                if(s.t){
+                    fetch(s.u,opt).then(r=>r.ok?r.text():Promise.reject()).then(t=>{
+                        if(done) return;
+                        const ip=s.p(t);
+                        if(ip && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)){
+                            ips.push({ip,src:s.n});
+                            if(!match() && ips.length===src.length && !done){
+                                const uniq=[...new Set(ips.map(i=>i.ip))];
+                                uniq.length===1?show(uniq[0]):show('Error: IP mismatch');
+                                done=1;
+                                abortAll();
                             }
-                        })
-                        .catch(err => {
-                            if(err.name === 'AbortError') return;
-                            if(!done){
-                                append(source.name + ': failed');
-                            }
-                        });
-                } else {
-                    fetch(source.url, options)
-                        .then(res => res.json())
-                        .then(data => {
-                            if(done) return;
-                            const ip = source.parse(data);
-                            if(ip && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)){
-                                ips.push({ ip, source: source.name });
-                                if(!checkMatch()){
-                                    if(ips.length === sources.length && !done){
-                                        const unique = [...new Set(ips.map(i=>i.ip))];
-                                        if(unique.length === 1){
-                                            show(unique[0]);
-                                            done = true;
-                                            abortAll();
-                                        } else {
-                                            show('Error: conflicting IPs: ' + ips.map(i=>i.ip).join(', '));
-                                            done = true;
-                                            abortAll();
-                                        }
-                                    }
-                                }
-                            }
-                        })
-                        .catch(err => {
-                            if(err.name === 'AbortError') return;
-                            if(!done){
-                                append(source.name + ': failed');
-                            }
-                        });
-                }
-            }
-            
-            sources.forEach((src, i) => fetchIP(src, i));
-            
-            setTimeout(() => {
-                if(!done){
-                    done = true;
-                    abortAll();
-                    if(ips.length >= 2){
-                        const firstIp = ips[0].ip;
-                        let match = true;
-                        for(let i=1; i<ips.length; i++){
-                            if(ips[i].ip !== firstIp) match = false;
                         }
-                        if(match) show(firstIp);
-                        else show('Error: conflicting or insufficient data');
-                    } else {
-                        show('Error: could not verify IP from 2 sources');
-                    }
+                    }).catch(e=>{if(e.name!=='AbortError' && !done) show('Error: fetch failed');});
+                } else {
+                    fetch(s.u,opt).then(r=>r.json()).then(d=>{
+                        if(done) return;
+                        const ip=s.p(d);
+                        if(ip && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)){
+                            ips.push({ip,src:s.n});
+                            if(!match() && ips.length===src.length && !done){
+                                const uniq=[...new Set(ips.map(i=>i.ip))];
+                                uniq.length===1?show(uniq[0]):show('Error: IP mismatch');
+                                done=1;
+                                abortAll();
+                            }
+                        }
+                    }).catch(e=>{if(e.name!=='AbortError' && !done) show('Error: fetch failed');});
                 }
-            }, 8000);
+            };
+            src.forEach(s=>fetchIP(s));
+            setTimeout(()=>{
+                if(!done){
+                    done=1;
+                    abortAll();
+                    if(ips.length>=2){
+                        const f=ips[0].ip;
+                        let allMatch=1;
+                        for(let i=1;i<ips.length;i++) if(ips[i].ip!==f) allMatch=0;
+                        allMatch?show(f):show('Error: conflicting IPs');
+                    } else show('Error: insufficient data');
+                }
+            },5000);
         })();
     </script>
 </body>
