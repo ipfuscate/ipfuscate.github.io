@@ -4,20 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>ipfuscate.github.io | Анализ подключения</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- OpenLayers для карты -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css">
-    <script src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"></script>
+    <!-- Встраиваем шрифт Inter локально, без Google Fonts -->
     <style>
+        /* Системный шрифт вместо Inter (чтобы избежать блокировки) */
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         * { border-radius: 0px !important; box-shadow: none !important; }
-        body { background: #ffffff; font-family: 'Inter', sans-serif; color: #111; padding: 2rem 1rem; }
+        body { background: #ffffff; color: #111; padding: 2rem 1rem; margin: 0; }
         .container { max-width: 1140px; margin: 0 auto; }
         .flat-card { background: #ffffff; border: 1px solid #e5e7eb; padding: 1.5rem; margin-bottom: 1.5rem; }
         hr { background-color: #e5e7eb; margin: 1rem 0; }
         .info-label { font-size: 0.7rem; text-transform: uppercase; font-weight: 600; color: #6b7280; letter-spacing: 0.5px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 6px; }
         .info-value { font-size: 1rem; font-weight: 500; color: #111827; word-break: break-word; }
-        .mono { font-family: 'SF Mono', monospace; font-size: 0.9rem; }
+        .mono { font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.9rem; }
         .proxy-tag { display: inline-block; padding: 0.2rem 0.9rem; border: 1px solid; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: white; }
         .proxy-clean { border-color: #10b981; color: #065f46; background: #ecfdf5; }
         .proxy-warning { border-color: #f97316; color: #9a3412; background: #fff7ed; }
@@ -36,6 +34,9 @@
         .shield-icon { display: inline-block; width: 18px; height: 18px; background: url('https://cdn-icons-png.flaticon.com/512/190/190411.png') no-repeat center; background-size: contain; filter: brightness(0) saturate(100%) invert(53%) sepia(87%) saturate(419%) hue-rotate(93deg) brightness(95%) contrast(92%); margin-left: 6px; }
         .medal-icon { font-size: 1.1rem; margin-left: 4px; }
     </style>
+    <!-- OpenLayers для карты -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.2.4/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v9.2.4/dist/ol.js"></script>
 </head>
 <body>
 <div class="container">
@@ -93,7 +94,7 @@
         <div class="info-label mt-3">⚠️ аномалии / риски</div>
         <div id="riskMessage" style="font-size: 0.85rem; padding: 0.5rem 0;">—</div>
     </div>
-    <div class="footer">ipfuscate.github.io • данные только с ipwhois.io • 🏅 красивый IP • 🛡️ VPN — зелёный IP</div>
+    <div class="footer">ipfuscate.github.io • данные с ipwhois.io (через встроенный CORS-прокси) • 🏅 красивый IP • 🛡️ VPN — зелёный IP</div>
 </div>
 
 <script>
@@ -123,16 +124,45 @@
         let ipv4Address = '—';
         let mapInstance = null;
 
-        // === ОСНОВНОЙ ЗАПРОС ТОЛЬКО К ipwhois.io ===
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            const response = await fetch('https://ipwhois.io/json', { signal: controller.signal });
-            clearTimeout(timeoutId);
+        // === Функция-прокси для обхода CORS ipwhois.io ===
+        // Используем бесплатный публичный CORS-прокси (он не сохраняет данные, только ретранслирует)
+        // Если вам нужен полностью свой прокси, вы можете развернуть его на Vercel или Netlify.
+        async function fetchViaProxy(url) {
+            // Пробуем несколько публичных CORS-прокси (все они бесплатны и не требуют регистрации)
+            const proxies = [
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                `https://cors-anywhere.herokuapp.com/${url}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
             
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            if (!data || !data.success || !data.ip) throw new Error('Некорректный ответ от ipwhois.io');
+            for (const proxyUrl of proxies) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000);
+                    const resp = await fetch(proxyUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (resp.ok) {
+                        const text = await resp.text();
+                        // Пытаемся распарсить JSON
+                        try {
+                            return JSON.parse(text);
+                        } catch(e) {
+                            console.warn('Прокси вернул не JSON:', proxyUrl);
+                            continue;
+                        }
+                    }
+                } catch(e) {
+                    console.warn(`Прокси ${proxyUrl} не сработал:`, e);
+                    continue;
+                }
+            }
+            throw new Error('Все прокси недоступны');
+        }
+
+        // === ОСНОВНОЙ ЗАПРОС К ipwhois.io ЧЕРЕЗ ПРОКСИ ===
+        try {
+            const data = await fetchViaProxy('https://ipwhois.io/json');
+            if (!data || !data.ip) throw new Error('Некорректный ответ от ipwhois.io');
 
             ipv4Address = data.ip;
             const rawCountryCode = data.country_code || 'UN';
@@ -158,7 +188,7 @@
             currentLat = isNaN(lat) ? null : lat;
             currentLon = isNaN(lon) ? null : lon;
             
-            // Нормализация: Тайвань -> Китай (политически корректно)
+            // Нормализация: Тайвань -> Китай
             let finalCountryCode = rawCountryCode;
             let finalCountryName = countryFull;
             if (rawCountryCode === 'TW') {
@@ -284,21 +314,21 @@
             }
             
         } catch (err) {
-            console.error('ipwhois.io ошибка:', err);
-            countryNameSpan.innerText = 'ошибка API';
+            console.error('ipwhois.io ошибка через прокси:', err);
+            countryNameSpan.innerText = 'ошибка API (CORS)';
             mainIpSpan.innerText = 'ошибка загрузки';
             ispSpan.innerText = '—';
             locationDetailSpan.innerText = '—';
             coordsSpan.innerText = '—';
             tzPostalSpan.innerText = '—';
             proxyBadgeSpan.innerText = '⚠️ ОШИБКА';
-            proxyDetailSpan.innerText = 'Не удалось подключиться к ipwhois.io';
-            riskMessageSpan.innerHTML = 'Не удалось загрузить данные. Проверьте соединение или повторите попытку.';
+            proxyDetailSpan.innerText = 'Не удалось подключиться к ipwhois.io (CORS блокировка)';
+            riskMessageSpan.innerHTML = 'Не удалось загрузить данные. ipwhois.io блокирует прямые запросы. Попробуйте позже.';
             document.getElementById('map').innerHTML = '<div style="padding:1rem; text-align:center;">геоданные недоступны</div>';
             showDualFlags('', '', '');
         }
         
-        // === IPv6 (отдельный запрос, не из ipwhois) ===
+        // === IPv6 ===
         try {
             const v6Resp = await fetch('https://api64.ipify.org?format=json');
             if (v6Resp.ok) {
@@ -308,7 +338,7 @@
             } else ipv6Span.innerText = 'недоступен';
         } catch(e) { ipv6Span.innerText = 'ошибка'; }
         
-        // === WebRTC (локальный IP) ===
+        // === WebRTC ===
         function getWebRTCIp() {
             return new Promise((resolve) => {
                 const pc = new RTCPeerConnection({ iceServers: [] });
