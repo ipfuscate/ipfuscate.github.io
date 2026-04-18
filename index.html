@@ -126,7 +126,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000);
             // Используем поле "fields", чтобы получить все нужные данные + proxy/hosting
-            const response = await fetch('http://ip-api.com/json/?fields=status,query,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,mobile', { signal: controller.signal });
+            const response = await fetch('https://ip-api.com/json/?fields=status,query,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,mobile', { signal: controller.signal });
             clearTimeout(timeoutId);
             
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
