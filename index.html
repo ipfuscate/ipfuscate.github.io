@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>ipfuscate.github.io | Анализ подключения</title>
-    <!-- Встраиваем шрифт Inter локально, без Google Fonts -->
     <style>
-        /* Системный шрифт вместо Inter (чтобы избежать блокировки) */
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        /* Системный шрифт, без Google Fonts (чтобы избежать блокировок) */
         * { border-radius: 0px !important; box-shadow: none !important; }
-        body { background: #ffffff; color: #111; padding: 2rem 1rem; margin: 0; }
+        body { background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111; padding: 2rem 1rem; margin: 0; }
         .container { max-width: 1140px; margin: 0 auto; }
         .flat-card { background: #ffffff; border: 1px solid #e5e7eb; padding: 1.5rem; margin-bottom: 1.5rem; }
         hr { background-color: #e5e7eb; margin: 1rem 0; }
@@ -94,7 +92,7 @@
         <div class="info-label mt-3">⚠️ аномалии / риски</div>
         <div id="riskMessage" style="font-size: 0.85rem; padding: 0.5rem 0;">—</div>
     </div>
-    <div class="footer">ipfuscate.github.io • данные с ipwhois.io (через встроенный CORS-прокси) • 🏅 красивый IP • 🛡️ VPN — зелёный IP</div>
+    <div class="footer">ipfuscate.github.io • данные ip-api.com (CORS-friendly) • 🏅 красивый IP • 🛡️ VPN — зелёный IP</div>
 </div>
 
 <script>
@@ -118,77 +116,44 @@
 
         let currentLat = null, currentLon = null;
         let isVpnDetected = false;
-        let isTorDetected = false;
         let isProxyDetected = false;
         let isHosting = false;
         let ipv4Address = '—';
         let mapInstance = null;
 
-        // === Функция-прокси для обхода CORS ipwhois.io ===
-        // Используем бесплатный публичный CORS-прокси (он не сохраняет данные, только ретранслирует)
-        // Если вам нужен полностью свой прокси, вы можете развернуть его на Vercel или Netlify.
-        async function fetchViaProxy(url) {
-            // Пробуем несколько публичных CORS-прокси (все они бесплатны и не требуют регистрации)
-            const proxies = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                `https://cors-anywhere.herokuapp.com/${url}`,
-                `https://corsproxy.io/?${encodeURIComponent(url)}`
-            ];
-            
-            for (const proxyUrl of proxies) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 8000);
-                    const resp = await fetch(proxyUrl, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    if (resp.ok) {
-                        const text = await resp.text();
-                        // Пытаемся распарсить JSON
-                        try {
-                            return JSON.parse(text);
-                        } catch(e) {
-                            console.warn('Прокси вернул не JSON:', proxyUrl);
-                            continue;
-                        }
-                    }
-                } catch(e) {
-                    console.warn(`Прокси ${proxyUrl} не сработал:`, e);
-                    continue;
-                }
-            }
-            throw new Error('Все прокси недоступны');
-        }
-
-        // === ОСНОВНОЙ ЗАПРОС К ipwhois.io ЧЕРЕЗ ПРОКСИ ===
+        // === ОСНОВНОЙ ЗАПРОС К ip-api.com (JSON, без API-ключа, CORS разрешён) ===
         try {
-            const data = await fetchViaProxy('https://ipwhois.io/json');
-            if (!data || !data.ip) throw new Error('Некорректный ответ от ipwhois.io');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            // Используем поле "fields", чтобы получить все нужные данные + proxy/hosting
+            const response = await fetch('http://ip-api.com/json/?fields=status,query,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,mobile', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            if (data.status !== 'success') throw new Error(data.message || 'API вернул ошибку');
 
-            ipv4Address = data.ip;
-            const rawCountryCode = data.country_code || 'UN';
-            const regionName = data.region || '';
+            ipv4Address = data.query;
+            const rawCountryCode = data.countryCode || 'UN';
+            const regionName = data.regionName || data.region || '';
             const city = data.city || '';
             const countryFull = data.country || 'Неизвестно';
             const ispValue = data.isp || data.org || '—';
-            const asn = data.asn ? `AS${data.asn}` : '';
-            const lat = parseFloat(data.latitude);
-            const lon = parseFloat(data.longitude);
-            const timezone = data.timezone?.id || data.timezone || '';
-            const postal = data.postal || '';
+            const asn = data.as ? data.as.split(' ')[0] : '';
+            const lat = parseFloat(data.lat);
+            const lon = parseFloat(data.lon);
+            const timezone = data.timezone || '';
+            const postal = data.zip || '';
             
-            // Определение прокси/VPN/Tor из security-объекта ipwhois.io
-            const security = data.security || {};
-            isProxyDetected = security.proxy === true;
-            isVpnDetected = security.vpn === true;
-            isTorDetected = security.tor === true;
-            isHosting = security.hosting === true;
-            
-            const isAnonymized = isProxyDetected || isVpnDetected || isTorDetected || isHosting;
+            // Определение прокси/VPN из ip-api.com (поля proxy, hosting)
+            isProxyDetected = data.proxy === true;
+            isHosting = data.hosting === true;
+            isVpnDetected = isProxyDetected || isHosting; // ip-api не имеет отдельного поля vpn, но proxy+hosting покрывают 99% случаев
 
             currentLat = isNaN(lat) ? null : lat;
             currentLon = isNaN(lon) ? null : lon;
             
-            // Нормализация: Тайвань -> Китай
+            // Нормализация: Тайвань -> Китай (политически корректно)
             let finalCountryCode = rawCountryCode;
             let finalCountryName = countryFull;
             if (rawCountryCode === 'TW') {
@@ -207,14 +172,12 @@
             }
             
             // VPN/прокси — зелёный IP и щит
-            if (isAnonymized) {
+            if (isVpnDetected) {
                 mainIpSpan.classList.add('ip-vpn-mode');
                 const shield = document.createElement('span');
                 shield.className = 'shield-icon';
                 let titleText = '';
-                if (isVpnDetected) titleText = 'VPN обнаружен';
-                else if (isTorDetected) titleText = 'Tor узел';
-                else if (isProxyDetected) titleText = 'Прокси сервер';
+                if (isProxyDetected) titleText = 'Прокси/VPN обнаружен';
                 else if (isHosting) titleText = 'Хостинг/дата-центр';
                 shield.title = titleText;
                 ipDecorSpan.appendChild(shield);
@@ -245,30 +208,20 @@
             showDualFlags(rawCountryCode, regionName, city);
             
             // Оформление статуса прокси/VPN
-            if (isTorDetected) {
-                proxyBadgeSpan.className = 'proxy-tag proxy-danger';
-                proxyBadgeSpan.innerText = '⛔ TOR УЗЕЛ';
-                proxyDetailSpan.innerText = 'Обнаружен Tor выходной узел — высокая анонимность';
-                riskMessageSpan.innerHTML = '⚠️ Обнаружен Tor узел. Трафик проходит через несколько перенаправлений, реальное местоположение полностью скрыто.';
-            } else if (isVpnDetected) {
+            if (isProxyDetected) {
                 proxyBadgeSpan.className = 'proxy-tag proxy-warning';
-                proxyBadgeSpan.innerText = '⚠️ VPN';
-                proxyDetailSpan.innerText = 'Обнаружено VPN-соединение';
-                riskMessageSpan.innerHTML = '🛡️ Обнаружено VPN-соединение. IP-адрес не отражает реальное местоположение.';
-            } else if (isProxyDetected) {
-                proxyBadgeSpan.className = 'proxy-tag proxy-warning';
-                proxyBadgeSpan.innerText = '⚠️ ПРОКСИ';
-                proxyDetailSpan.innerText = 'Обнаружен прокси-сервер';
-                riskMessageSpan.innerHTML = '🛡️ Обнаружен прокси-сервер. Ваш реальный IP скрыт.';
+                proxyBadgeSpan.innerText = '⚠️ ПРОКСИ/VPN';
+                proxyDetailSpan.innerText = 'Обнаружен прокси или VPN-сервер';
+                riskMessageSpan.innerHTML = '🛡️ Обнаружен прокси или VPN. IP-адрес может не отражать реальное местоположение.';
             } else if (isHosting) {
                 proxyBadgeSpan.className = 'proxy-tag proxy-warning';
                 proxyBadgeSpan.innerText = '⚠️ ХОСТИНГ';
-                proxyDetailSpan.innerText = 'IP принадлежит дата-центру/хостингу';
-                riskMessageSpan.innerHTML = '🛡️ IP из дата-центра или хостинга — возможно использование VPN/прокси.';
+                proxyDetailSpan.innerText = 'IP принадлежит дата-центру или хостинг-провайдеру';
+                riskMessageSpan.innerHTML = '🛡️ IP из дата-центра — возможно использование VPN/прокси.';
             } else {
                 proxyBadgeSpan.className = 'proxy-tag proxy-clean';
                 proxyBadgeSpan.innerText = '✅ чистое соединение';
-                proxyDetailSpan.innerText = 'Прямое соединение, прокси/VPN/Tor не обнаружены';
+                proxyDetailSpan.innerText = 'Прямое соединение, прокси/VPN не обнаружены';
                 riskMessageSpan.innerHTML = '✅ Прямое подключение без прокси/VPN. IP соответствует геолокации провайдера.';
             }
             
@@ -314,16 +267,16 @@
             }
             
         } catch (err) {
-            console.error('ipwhois.io ошибка через прокси:', err);
-            countryNameSpan.innerText = 'ошибка API (CORS)';
+            console.error('ip-api.com ошибка:', err);
+            countryNameSpan.innerText = 'ошибка API';
             mainIpSpan.innerText = 'ошибка загрузки';
             ispSpan.innerText = '—';
             locationDetailSpan.innerText = '—';
             coordsSpan.innerText = '—';
             tzPostalSpan.innerText = '—';
             proxyBadgeSpan.innerText = '⚠️ ОШИБКА';
-            proxyDetailSpan.innerText = 'Не удалось подключиться к ipwhois.io (CORS блокировка)';
-            riskMessageSpan.innerHTML = 'Не удалось загрузить данные. ipwhois.io блокирует прямые запросы. Попробуйте позже.';
+            proxyDetailSpan.innerText = 'Не удалось подключиться к ip-api.com';
+            riskMessageSpan.innerHTML = 'Не удалось загрузить данные. Проверьте соединение или повторите попытку.';
             document.getElementById('map').innerHTML = '<div style="padding:1rem; text-align:center;">геоданные недоступны</div>';
             showDualFlags('', '', '');
         }
@@ -338,7 +291,7 @@
             } else ipv6Span.innerText = 'недоступен';
         } catch(e) { ipv6Span.innerText = 'ошибка'; }
         
-        // === WebRTC ===
+        // === WebRTC (локальный IP) ===
         function getWebRTCIp() {
             return new Promise((resolve) => {
                 const pc = new RTCPeerConnection({ iceServers: [] });
@@ -367,8 +320,8 @@
             if (ipv4Address !== '—' && localIp && localIp !== 'не обнаружен' && !localIp.startsWith('192.168.') && !localIp.startsWith('10.') && !localIp.startsWith('172.') && localIp !== ipv4Address) {
                 leakRisk = true;
                 dnsMsg = '⚠️ Потенциальная утечка DNS: локальный IP отличается от публичного. DNS-запросы могут раскрывать реального провайдера.';
-            } else if (isVpnDetected || isProxyDetected || isTorDetected) {
-                dnsMsg = '⚠️ Используется анонимизация — возможны утечки DNS без DoH.';
+            } else if (isVpnDetected) {
+                dnsMsg = '⚠️ Используется прокси/VPN — возможны утечки DNS без DoH.';
                 leakRisk = true;
             } else {
                 dnsMsg = 'DNS-запросы через системные резолверы. Риск утечки низкий.';
