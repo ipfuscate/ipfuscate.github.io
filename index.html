@@ -1,1 +1,414 @@
-test
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ipfuscate.github.io | Анализ соединения</title>
+    <!-- Bootstrap 5 (только сетка, без округлений/теней) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { border-radius: 0px !important; box-shadow: none !important; text-shadow: none !important; }
+        body { background: #ffffff; font-family: 'Inter', sans-serif; color: #111; padding: 2rem 1rem; }
+        .container { max-width: 1140px; margin: 0 auto; }
+        .flat-card { background: #ffffff; border: 1px solid #e5e7eb; padding: 1.5rem; margin-bottom: 1.5rem; }
+        hr { background-color: #e5e7eb; margin: 1rem 0; }
+        .info-label { font-size: 0.7rem; text-transform: uppercase; font-weight: 600; color: #6b7280; letter-spacing: 0.5px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 6px; }
+        .info-value { font-size: 1rem; font-weight: 500; color: #111827; word-break: break-word; }
+        .mono { font-family: 'SF Mono', monospace; font-size: 0.9rem; }
+        .proxy-tag { display: inline-block; padding: 0.2rem 0.9rem; border: 1px solid; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: white; }
+        .proxy-clean { border-color: #10b981; color: #065f46; background: #ecfdf5; }
+        .proxy-warning { border-color: #f97316; color: #9a3412; background: #fff7ed; }
+        .proxy-danger { border-color: #dc2626; color: #991b1b; background: #fef2f2; }
+        #map { height: 260px; width: 100%; border: 1px solid #e5e7eb; background: #f9fafb; }
+        h1 { font-size: 1.8rem; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 0.25rem; }
+        .footer { font-size: 0.7rem; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 1.5rem; margin-top: 1rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } body { padding: 1rem; } .flat-card { padding: 1rem; } }
+        .frutiger-icon { width: 18px; height: 18px; object-fit: contain; }
+        .dual-flags { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+        .dual-flag-item { display: flex; align-items: center; gap: 8px; background: #f9fafb; border: 1px solid #e5e7eb; padding: 4px 14px 4px 10px; }
+        .dual-flag-img { width: 32px; height: 32px; object-fit: contain; border: 1px solid #e5e7eb; background: white; }
+        .flag-single { width: 48px; height: 48px; object-fit: contain; border: 1px solid #e5e7eb; background: #fafafa; }
+        .ip-beautiful { display: inline-flex; align-items: center; gap: 6px; }
+        .ip-vpn-mode { color: #10b981 !important; font-weight: 700; }
+        .shield-icon { display: inline-block; width: 18px; height: 18px; background: url('https://cdn-icons-png.flaticon.com/512/190/190411.png') no-repeat center; background-size: contain; filter: brightness(0) saturate(100%) invert(53%) sepia(87%) saturate(419%) hue-rotate(93deg) brightness(95%) contrast(92%); margin-left: 6px; }
+        .medal-icon { font-size: 1.1rem; margin-left: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="margin-bottom: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
+        <h1>ipfuscate.github.io</h1>
+        <p style="color: #4b5563;">анализ подключения · прокси, vpn, dns, геолокация</p>
+    </div>
+
+    <!-- Блок флага и IP -->
+    <div class="flat-card">
+        <div class="row align-items-center">
+            <div class="col-md-6 col-12 mb-3 mb-md-0">
+                <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/globe.png" class="frutiger-icon" onerror="this.style.display='none'"> страна / регион</div>
+                <div id="countryDisplayArea">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <img id="countryFlagMain" class="flag-single" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='%23e5e7eb'%3E%3Crect width='24' height='24' fill='%23e5e7eb'/%3E%3C/svg%3E" alt="flag">
+                        <div><div class="info-value" id="countryName" style="font-size: 1.25rem;">—</div></div>
+                    </div>
+                    <div id="dualFlagsContainer" class="dual-flags"></div>
+                </div>
+            </div>
+            <div class="col-md-6 col-12 text-md-end">
+                <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/network.png" class="frutiger-icon" onerror="this.style.display='none'"> публичный IPv4</div>
+                <div class="info-value mono" id="mainIpContainer"><span id="mainIp">загрузка...</span><span id="ipDecorSpan"></span></div>
+                <div class="info-label mt-2"><img src="https://frutigeraeroarchive.org/icons/wireless.png" class="frutiger-icon" onerror="this.style.display='none'"> IPv6</div>
+                <div class="info-value mono" id="ipv6addr">—</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="flat-card">
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/antenna.png" class="frutiger-icon" onerror="this.style.display='none'"> интернет-провайдер / AS</div>
+            <div class="info-value mono" id="isp">—</div><hr>
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/location.png" class="frutiger-icon" onerror="this.style.display='none'"> географическое положение</div>
+            <div class="info-value" id="locationDetail">—</div><hr>
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/coordinates.png" class="frutiger-icon" onerror="this.style.display='none'"> координаты (lat, lon)</div>
+            <div class="info-value mono" id="coords">—</div><hr>
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/clock.png" class="frutiger-icon" onerror="this.style.display='none'"> часовой пояс / почтовый индекс</div>
+            <div class="info-value" id="tzPostal">—</div>
+        </div>
+        <div class="flat-card">
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/shield.png" class="frutiger-icon" onerror="this.style.display='none'"> прокси / vpn / анонимайзер</div>
+            <div id="proxyStatusBlock" class="mb-3"><span id="proxyBadge" class="proxy-tag proxy-clean">проверка...</span><span id="proxyDetailText" style="margin-left: 0.5rem; font-size: 0.8rem;"></span></div><hr>
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/dns.png" class="frutiger-icon" onerror="this.style.display='none'"> DNS-утечки (резолверы)</div>
+            <div class="info-value mono" id="dnsLeakInfo" style="font-size: 0.8rem;">анализ...</div>
+            <div id="dnsNote" style="font-size: 0.65rem; margin-top: 5px;"></div><hr>
+            <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/webcam.png" class="frutiger-icon" onerror="this.style.display='none'"> WebRTC (локальный IP)</div>
+            <div class="info-value mono" id="webrtcIp">—</div>
+        </div>
+    </div>
+
+    <div class="flat-card">
+        <div class="info-label"><img src="https://frutigeraeroarchive.org/icons/map.png" class="frutiger-icon" onerror="this.style.display='none'"> положение на карте (нейтральная подложка)</div>
+        <div id="map"></div>
+        <div class="info-label mt-3"><img src="https://frutigeraeroarchive.org/icons/warning.png" class="frutiger-icon" onerror="this.style.display='none'"> аномалии / риски</div>
+        <div id="riskMessage" style="font-size: 0.85rem; padding: 0.5rem 0;">—</div>
+    </div>
+    <div class="footer">ipfuscate.github.io • данные ip-api.com • иконки Frutiger Aero • 🏅 красивый IP • 🛡️ VPN-зеленый IP • карта без политических границ</div>
+</div>
+
+<script>
+    (async () => {
+        // DOM
+        const countryFlagMain = document.getElementById('countryFlagMain');
+        const countryNameSpan = document.getElementById('countryName');
+        const mainIpSpan = document.getElementById('mainIp');
+        const ipDecorSpan = document.getElementById('ipDecorSpan');
+        const mainIpContainer = document.getElementById('mainIpContainer');
+        const ipv6Span = document.getElementById('ipv6addr');
+        const ispSpan = document.getElementById('isp');
+        const locationDetailSpan = document.getElementById('locationDetail');
+        const coordsSpan = document.getElementById('coords');
+        const tzPostalSpan = document.getElementById('tzPostal');
+        const proxyBadgeSpan = document.getElementById('proxyBadge');
+        const proxyDetailSpan = document.getElementById('proxyDetailText');
+        const dnsLeakInfoSpan = document.getElementById('dnsLeakInfo');
+        const dnsNoteSpan = document.getElementById('dnsNote');
+        const webrtcIpSpan = document.getElementById('webrtcIp');
+        const riskMessageSpan = document.getElementById('riskMessage');
+        const dualFlagsContainer = document.getElementById('dualFlagsContainer');
+
+        let mapInstance = null;
+        let currentLat = null, currentLon = null;
+        let isVpnDetected = false;
+
+        // --- СПОРНЫЕ ТЕРРИТОРИИ (двойные флаги) ---
+        // Тайвань полностью исключён — всегда показываем только флаг Китая.
+        // Ключ = код страны ИЛИ спец-ключ, массив [де-факто, де-юре]
+        const disputedMap = {
+            'XK': [ { code: 'XK', name: 'Косово', label: 'де-факто' }, { code: 'RS', name: 'Сербия', label: 'де-юре' } ],
+            'PS': [ { code: 'PS', name: 'Палестина', label: 'де-факто (сектор Газа)' }, { code: 'IL', name: 'Израиль', label: 'де-юре' } ],
+            'IL-GAZA': [ { code: 'PS', name: 'Палестина (Газа)', label: 'де-факто' }, { code: 'IL', name: 'Израиль', label: 'де-юре' } ],
+            'RU-62': [ { code: 'RU', name: 'Россия', label: 'де-факто' }, { code: 'UA', name: 'Украина', label: 'де-юре' } ],
+            'AB': [ { code: 'AB', name: 'Абхазия', label: 'де-факто' }, { code: 'GE', name: 'Грузия', label: 'де-юре' } ],
+            'OS': [ { code: 'OS', name: 'Южная Осетия', label: 'де-факто' }, { code: 'GE', name: 'Грузия', label: 'де-юре' } ],
+            'EH': [ { code: 'EH', name: 'САДР', label: 'де-факто' }, { code: 'MA', name: 'Марокко', label: 'де-юре' } ]
+        };
+        // Микрогосударства (только свой флаг, без двойного)
+        const microStates = ['MC', 'SM', 'LI', 'AD', 'MT', 'LU', 'VA'];
+        // Тайвань всегда обрабатываем как Китай (флаг CN)
+        const TAIWAN_CODES = ['TW', 'TWN'];
+        
+        function getNormalizedCountryCode(code, regionName, cityName) {
+            if (!code) return 'UN';
+            // Если код Тайвань — заменяем на Китай
+            if (TAIWAN_CODES.includes(code)) {
+                return 'CN';
+            }
+            return code;
+        }
+        
+        function getCountryNameNormalized(countryCodeRaw, originalName, regionName, cityName) {
+            if (TAIWAN_CODES.includes(countryCodeRaw)) {
+                return 'Китай (Тайвань — провинция КНР)';
+            }
+            return originalName || 'Неизвестно';
+        }
+
+        function showDualFlags(countryCodeRaw, regionName, cityName) {
+            dualFlagsContainer.innerHTML = '';
+            // Для Тайваня двойные флаги не показываем никогда
+            if (TAIWAN_CODES.includes(countryCodeRaw)) return false;
+            
+            let disputeKey = null;
+            let isGaza = false;
+            // Сектор Газа: проверим по региону/городу
+            if ((regionName && (regionName.toLowerCase().includes('gaza') || regionName.toLowerCase().includes('غزة'))) ||
+                (cityName && (cityName.toLowerCase().includes('gaza') || cityName.toLowerCase().includes('خان يونس')))) {
+                isGaza = true;
+                disputeKey = 'IL-GAZA';
+            }
+            // Крым
+            const isCrimea = (regionName && (regionName.toLowerCase().includes('crimea') || regionName.toLowerCase().includes('крым'))) ||
+                             (cityName && (cityName.toLowerCase().includes('sevastopol') || cityName.toLowerCase().includes('симферополь')));
+            if (isCrimea && !disputeKey) disputeKey = 'RU-62';
+            
+            if (!disputeKey && disputedMap[countryCodeRaw]) disputeKey = countryCodeRaw;
+            // Если страна - микрогосударство, не показываем двойной флаг
+            if (microStates.includes(countryCodeRaw)) return false;
+            
+            if (disputeKey && disputedMap[disputeKey]) {
+                const flagsData = disputedMap[disputeKey];
+                for (let item of flagsData) {
+                    const div = document.createElement('div');
+                    div.className = 'dual-flag-item';
+                    div.innerHTML = `
+                        <img class="dual-flag-img" src="https://flagsapi.com/${item.code}/shiny/64.png" onerror="this.src='https://flagsapi.com/UN/shiny/64.png'">
+                        <span style="font-size:0.8rem; font-weight:500;">${item.name} <span style="color:#6b7280; font-size:0.65rem;">(${item.label})</span></span>
+                    `;
+                    dualFlagsContainer.appendChild(div);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // --- Функция проверки "красивый IP" ---
+        function isBeautifulIp(ip) {
+            if (!ip || ip === '—') return false;
+            const parts = ip.split('.');
+            if (parts.length !== 4) return false;
+            const allSame = parts.every(p => p === parts[0]);
+            if (allSame) return true;
+            const isPalindrome = ip.replace(/\./g, '') === ip.replace(/\./g, '').split('').reverse().join('');
+            if (isPalindrome) return true;
+            const hasRepeating = /(?:(\d)\1{2,})/.test(ip.replace(/\./g, ''));
+            if (hasRepeating) return true;
+            const nicePatterns = ['123', '234', '321', '111', '222', '000', '255', '127', '192', '8.8.8.8', '1.1.1.1'];
+            for (let pat of nicePatterns) if (ip.includes(pat)) return true;
+            return false;
+        }
+
+        // --- ОСНОВНОЙ ЗАПРОС к ip-api.com ---
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 7000);
+            const resp = await fetch('https://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query,proxy,mobile,hosting', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            if (data.status !== 'success') throw new Error(data.message || 'geo fail');
+            
+            const ipv4 = data.query || '—';
+            let rawCountryCode = data.countryCode || 'UN';
+            const regionName = data.regionName || data.region || '';
+            const city = data.city || '';
+            
+            // Нормализация: Тайвань -> Китай
+            const finalCountryCode = getNormalizedCountryCode(rawCountryCode, regionName, city);
+            const finalCountryName = getCountryNameNormalized(rawCountryCode, data.country, regionName, city);
+            
+            const ispValue = data.isp || data.org || '—';
+            const asn = data.as ? data.as.split(' ')[0] : '';
+            const zip = data.zip || '';
+            const timezone = data.timezone || '';
+            const lat = parseFloat(data.lat);
+            const lon = parseFloat(data.lon);
+            const isProxy = (data.proxy === true) || (data.hosting === true) || false;
+            
+            currentLat = isNaN(lat) ? null : lat;
+            currentLon = isNaN(lon) ? null : lon;
+            isVpnDetected = isProxy;
+            
+            // --- Флаг основной (для Тайваня будет флаг Китая) ---
+            countryFlagMain.src = `https://flagsapi.com/${finalCountryCode}/shiny/64.png`;
+            countryNameSpan.innerText = finalCountryName;
+            
+            // --- Обработка IP: красивый значок и VPN-зеленый цвет ---
+            mainIpSpan.innerText = ipv4;
+            ipDecorSpan.innerHTML = '';
+            if (isBeautifulIp(ipv4)) {
+                ipDecorSpan.innerHTML = '<span class="medal-icon">🏅</span>';
+            }
+            if (isProxy) {
+                mainIpSpan.classList.add('ip-vpn-mode');
+                const shieldSpan = document.createElement('span');
+                shieldSpan.className = 'shield-icon';
+                shieldSpan.title = 'VPN/прокси';
+                ipDecorSpan.appendChild(shieldSpan);
+            } else {
+                mainIpSpan.classList.remove('ip-vpn-mode');
+            }
+            
+            ispSpan.innerText = ispValue + (asn ? ` (${asn})` : '');
+            let locationStr = '';
+            if (city && regionName) locationStr = `${city}, ${regionName}, ${finalCountryName}`;
+            else if (city) locationStr = `${city}, ${finalCountryName}`;
+            else locationStr = finalCountryName;
+            locationDetailSpan.innerText = locationStr || '—';
+            
+            if (currentLat && currentLon) {
+                coordsSpan.innerText = `${currentLat.toFixed(4)}°, ${currentLon.toFixed(4)}°`;
+                let extra = [];
+                if (zip) extra.push(`почтовый индекс: ${zip}`);
+                if (timezone) extra.push(`часовой пояс: ${timezone}`);
+                tzPostalSpan.innerText = extra.length ? extra.join(' • ') : '—';
+            } else {
+                coordsSpan.innerText = 'координаты недоступны';
+                tzPostalSpan.innerText = '—';
+            }
+            
+            // --- Двойные флаги для спорных территорий (Тайвань исключён) ---
+            const isDisputedShown = showDualFlags(rawCountryCode, regionName, city);
+            if (!isDisputedShown && dualFlagsContainer) dualFlagsContainer.innerHTML = '';
+            
+            // --- Прокси / VPN оформление ---
+            let proxyType = 'clean';
+            let proxyMsg = '';
+            let riskLevel = 'low';
+            if (isProxy) {
+                proxyType = 'proxy';
+                proxyMsg = 'Обнаружено VPN/прокси или хостинг (анонимизация)';
+                riskLevel = 'medium';
+            } else {
+                proxyMsg = 'Прямое соединение, VPN/прокси не зафиксированы';
+                proxyType = 'clean';
+                riskLevel = 'low';
+            }
+            
+            proxyBadgeSpan.className = 'proxy-tag';
+            if (proxyType === 'clean') {
+                proxyBadgeSpan.classList.add('proxy-clean');
+                proxyBadgeSpan.innerText = '✅ чистое соединение';
+                proxyDetailSpan.innerText = proxyMsg;
+            } else {
+                proxyBadgeSpan.classList.add('proxy-warning');
+                proxyBadgeSpan.innerText = '⚠️ VPN / ПРОКСИ';
+                proxyDetailSpan.innerText = proxyMsg;
+            }
+            
+            if (riskLevel === 'medium') riskMessageSpan.innerHTML = '🛡️ Обнаружены признаки прокси или VPN. IP-адрес может не отражать реальное местоположение.';
+            else riskMessageSpan.innerHTML = '✅ Прямое подключение без прокси/VPN. IP соответствует геолокации провайдера.';
+            
+            // --- Карта ---
+            if (currentLat && currentLon && !isNaN(currentLat) && !isNaN(currentLon)) {
+                           if (currentLat && currentLon && !isNaN(currentLat) && !isNaN(currentLon)) {
+                if (mapInstance) mapInstance.remove();
+                mapInstance = L.map('map').setView([currentLat, currentLon], 5);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> | нейтральная карта',
+                    subdomains: 'abcd'
+                }).addTo(mapInstance);
+                L.marker([currentLat, currentLon]).addTo(mapInstance).bindPopup(locationStr).openPopup();
+            } else {
+                document.getElementById('map').innerHTML = '<div style="padding: 1rem; text-align:center;">координаты недоступны для карты</div>';
+            }
+            
+        } catch (err) {
+            console.error('ip-api ошибка:', err);
+            mainIpSpan.innerText = 'ошибка гео-API';
+            mainIpSpan.classList.remove('ip-vpn-mode');
+            countryNameSpan.innerText = 'не удалось определить';
+            ispSpan.innerText = '—';
+            locationDetailSpan.innerText = '—';
+            coordsSpan.innerText = '—';
+            tzPostalSpan.innerText = '—';
+            proxyBadgeSpan.innerText = '⚠️ ОШИБКА';
+            proxyDetailSpan.innerText = 'провайдер не ответил';
+            riskMessageSpan.innerHTML = 'Не удалось загрузить данные. Проверьте соединение или используйте VPN для доступа к API.';
+            document.getElementById('map').innerHTML = '<div style="padding:1rem; text-align:center;">геоданные недоступны</div>';
+            if (dualFlagsContainer) dualFlagsContainer.innerHTML = '<div style="font-size:0.7rem; color:gray;">—</div>';
+        }
+        
+        // --- IPv6 ---
+        try {
+            const v6resp = await fetch('https://api64.ipify.org?format=json', { signal: AbortSignal.timeout?.(3000) });
+            if (v6resp && v6resp.ok) {
+                const v6json = await v6resp.json();
+                const v6 = v6json.ip;
+                if (v6 && v6.includes(':')) ipv6Span.innerText = v6;
+                else ipv6Span.innerText = 'IPv6 не назначен';
+            } else ipv6Span.innerText = 'недоступен';
+        } catch (e) { ipv6Span.innerText = 'ошибка проверки'; }
+        
+        // --- WebRTC ---
+        function getWebRTCIp() {
+            return new Promise((resolve) => {
+                const pc = new RTCPeerConnection({ iceServers: [] });
+                let resolved = false;
+                pc.createDataChannel('test');
+                pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(()=>{});
+                pc.onicecandidate = (ice) => {
+                    if (!ice || !ice.candidate || !ice.candidate.candidate || resolved) return;
+                    const candidateLine = ice.candidate.candidate;
+                    const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})|([a-f0-9:]+:+[a-f0-9:]+)/i;
+                    const match = candidateLine.match(ipRegex);
+                    if (match && match[0] && !match[0].startsWith('0.0') && match[0].length > 6) {
+                        resolved = true;
+                        resolve(match[0]);
+                        pc.close();
+                    }
+                };
+                setTimeout(() => {
+                    if (!resolved) resolve('не обнаружен (защищен)');
+                    pc.close();
+                }, 1300);
+            });
+        }
+        const localIp = await getWebRTCIp();
+        webrtcIpSpan.innerText = localIp;
+        
+        // --- DNS утечки ---
+        try {
+            let dnsMsg = '';
+            let leakRisk = false;
+            const publicIpText = mainIpSpan.innerText;
+            if (publicIpText && localIp && localIp !== 'не обнаружен (защищен)' && !localIp.startsWith('192.168.') && !localIp.startsWith('10.') && !localIp.startsWith('172.') && localIp !== publicIpText) {
+                leakRisk = true;
+                dnsMsg = '⚠️ Потенциальная утечка DNS: локальный IP отличается от публичного. DNS-запросы могут раскрывать реального провайдера.';
+            } else if (isVpnDetected) {
+                dnsMsg = '⚠️ Используется VPN — возможны утечки DNS, если не настроен защищенный DNS-over-HTTPS.';
+                leakRisk = true;
+            } else {
+                dnsMsg = 'DNS-запросы, вероятно, используют системные резолверы. Риск утечки низкий.';
+            }
+            dnsLeakInfoSpan.innerText = dnsMsg;
+            dnsNoteSpan.innerHTML = '🔒 Для защиты используйте DoH (Cloudflare 1.1.1.1) или Quad9.';
+            if (leakRisk) dnsNoteSpan.style.color = '#b45309';
+            else dnsNoteSpan.style.color = '#6c757d';
+        } catch (dnsErr) { dnsLeakInfoSpan.innerText = 'DNS-анализ завершён (стандартные резолверы)'; dnsNoteSpan.innerText = 'используйте зашифрованные DNS'; }
+        
+        // фикс карты
+        if ((!mapInstance || !document.getElementById('map').innerHTML.includes('leaflet')) && currentLat && currentLon && !isNaN(currentLat) && !isNaN(currentLon)) {
+            try {
+                if (mapInstance) mapInstance.remove();
+                mapInstance = L.map('map').setView([currentLat, currentLon], 5);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapInstance);
+                L.marker([currentLat, currentLon]).addTo(mapInstance);
+            } catch(e) {}
+        }
+    })();
+</script>
+</body>
+</html>
