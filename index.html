@@ -131,7 +131,7 @@
             font-size: 0.95rem;
         }
 
-        /* Увеличенный блок с флагом и IP */
+
         .flag-ip-row {
             display: flex;
             align-items: center;
@@ -318,8 +318,8 @@
             <span class="info-value mono" id="ipv6addr" style="font-size: 0.9rem; display: inline-block; margin-left: 8px;">—</span>
         </div>
         <div class="country-block">
-            <div class="info-label">СТРАНА / РЕГИОН</div>
-            <div class="country-name-large" id="countryName">загрузка...</div>
+            <div class="info-label">Страна</div>
+            <div class="country-name-large" id="countryName"></div>
             <div id="dualFlagsContainer" class="dual-flags-below"></div>
         </div>
     </div>
@@ -328,30 +328,29 @@
     <div class="grid-2">
   
         <div class="flat-card">
-            <div class="info-label">ИНТЕРНЕТ-ПРОВАЙДЕР / AS</div>
+            <div class="info-label">Провайдер</div>
             <div class="info-value mono" id="isp" style="font-size: 1rem;">—</div>
             <hr>
-            <div class="info-label">ГЕОГРАФИЧЕСКОЕ ПОЛОЖЕНИЕ</div>
+            <div class="info-label">Географическое положение</div>
             <div class="info-value" id="locationDetail" style="font-size: 1rem;">—</div>
             <hr>
-            <div class="info-label">КООРДИНАТЫ (LAT, LON)</div>
+            <div class="info-label">Координаты</div>
             <div class="info-value mono" id="coords">—</div>
             <hr>
-            <div class="info-label">ЧАСОВОЙ ПОЯС / ПОЧТОВЫЙ ИНДЕКС</div>
+            <div class="info-label">Часовой пояс/индес</div>
             <div class="info-value" id="tzPostal">—</div>
         </div>
 
   
         <div class="flat-card">
-            <div class="info-label">ТИП ПОДКЛЮЧЕНИЯ</div>
+            <div class="info-label">Подключение</div>
             <div class="info-value" id="connectionType">—</div>
             <hr>
-            <div class="info-label">ЛОКАЛЬНЫЙ IP (WEBRTC)</div>
+            <div class="info-label">WebRTC</div>
             <div class="info-value mono" id="webrtcIp">—</div>
         </div>
     </div>
 
-    <div class="footer">ipfuscate.github.io • 6 резервных IP API • красивый IP • защита приватности</div>
 </div>
 
 <script>
@@ -379,7 +378,7 @@
         let isHosting = false;
         let isVpnDetected = false;
 
-        // Вспомогательная функция определения "красивый IP"
+
         function isBeautifulIp(ip) {
             if (!ip || ip === '—') return false;
             const parts = ip.split('.');
