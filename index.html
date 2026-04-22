@@ -13,7 +13,7 @@
         }
 
         body {
-            background: linear-gradient(145deg, #e0e8f0 0%, #f0f4f8 100%);
+            background: #f0f0f0;
             font-family: 'Liter', 'Segoe UI', monospace;
             color: #1a2c3e;
             min-height: 100vh;
@@ -28,13 +28,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #eef2f7;
+            background: #f0f0f0;
             z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            backdrop-filter: blur(2px);
             transition: opacity 0.4s ease, visibility 0.4s ease;
         }
 
@@ -65,46 +64,36 @@
             letter-spacing: 0.5px;
         }
 
-        /* контейнер основной */
         .container {
             max-width: 1140px;
             margin: 0 auto;
             padding: 1.5rem 0.75rem;
         }
 
-        /* карточки – полная ширина на мобилках, прижаты к краям */
+        
         .flat-card {
             background: #ffffff;
             border: none;
             padding: 1.5rem;
             margin-bottom: 1.25rem;
-            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.9);
-            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             width: 100%;
             border-radius: 0;
         }
 
-        /* на десктопе небольшие скругления, но края касаются контейнера */
         @media (min-width: 768px) {
-            .flat-card {
-                border-radius: 20px;
-                margin-left: 0;
-                margin-right: 0;
-            }
             .container {
                 padding-left: 1rem;
                 padding-right: 1rem;
             }
         }
 
-        /* на мобилках карточки вплотную к левому/правому краю экрана */
         @media (max-width: 767px) {
             .container {
                 padding: 0.75rem 0 !important;
                 max-width: 100%;
             }
             .flat-card {
-                border-radius: 0;
                 margin-left: 0;
                 margin-right: 0;
                 padding: 1.2rem;
@@ -112,7 +101,7 @@
         }
 
         hr {
-            background: linear-gradient(90deg, #e2e8f0, #cbd5e1, #e2e8f0);
+            background: #e2e8f0;
             margin: 1rem 0;
             border: none;
             height: 1px;
@@ -142,24 +131,25 @@
             font-size: 0.95rem;
         }
 
+        /* Увеличенный блок с флагом и IP */
         .flag-ip-row {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
-            row-gap: 0.75rem;
+            gap: 20px;
+            row-gap: 1rem;
         }
 
         .flags-container {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
         .main-flag {
-            width: 64px;
-            height: 64px;
+            width: 96px;
+            height: 96px;
             object-fit: contain;
             background: transparent;
             border: none;
@@ -168,32 +158,31 @@
         .dual-flag-item {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             background: #f8fafc;
-            padding: 2px 10px 2px 6px;
+            padding: 4px 12px 4px 8px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-            border-radius: 40px;
         }
 
         .dual-flag-img {
-            width: 32px;
-            height: 32px;
+            width: 44px;
+            height: 44px;
             object-fit: contain;
         }
 
         .ip-block {
             display: flex;
             align-items: baseline;
-            gap: 8px;
+            gap: 12px;
             background: transparent;
             padding: 0;
         }
 
         .ip-address {
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: 700;
             font-family: 'Liter', monospace;
-            line-height: 1;
+            line-height: 1.1;
             background: transparent;
             padding: 0;
         }
@@ -204,8 +193,8 @@
 
         .shield-icon {
             display: inline-block;
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             background: url('https://cdn-icons-png.flaticon.com/512/190/190411.png') no-repeat center;
             background-size: contain;
             filter: brightness(0) saturate(100%) invert(53%) sepia(87%) saturate(419%) hue-rotate(93deg) brightness(95%) contrast(92%);
@@ -213,14 +202,14 @@
         }
 
         .medal-icon {
-            font-size: 1.6rem;
-            margin-left: 4px;
+            font-size: 2rem;
+            margin-left: 6px;
             vertical-align: middle;
             filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
         }
 
         .ipv6-line {
-            margin-top: 0.5rem;
+            margin-top: 0.75rem;
             text-align: left;
             display: none;
         }
@@ -230,13 +219,13 @@
         }
 
         .country-block {
-            margin-top: 1rem;
-            padding-top: 0.5rem;
+            margin-top: 1.2rem;
+            padding-top: 0.75rem;
             border-top: 1px solid #eef2f5;
         }
 
         .country-name-large {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: 600;
             margin-top: 0.25rem;
         }
@@ -261,15 +250,22 @@
                 gap: 1rem;
             }
             .ip-address {
-                font-size: 1.6rem;
+                font-size: 2rem;
             }
             .main-flag {
-                width: 48px;
-                height: 48px;
+                width: 72px;
+                height: 72px;
             }
             .dual-flag-img {
-                width: 28px;
-                height: 28px;
+                width: 36px;
+                height: 36px;
+            }
+            .medal-icon {
+                font-size: 1.5rem;
+            }
+            .shield-icon {
+                width: 26px;
+                height: 26px;
             }
         }
 
@@ -283,7 +279,6 @@
             font-weight: 600;
             margin-bottom: 0.3rem;
             color: #1a3a4f;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
         }
 
         .footer {
@@ -294,37 +289,22 @@
             padding-top: 1.2rem;
             margin-top: 1rem;
         }
-
-        .risk-box {
-            background: #fef9e6;
-            border-left: 4px solid #e6b12e;
-            padding: 0.8rem 1rem;
-            font-size: 0.9rem;
-            margin-top: 0.8rem;
-            border-radius: 12px;
-        }
-
-        .dns-note {
-            font-size: 0.7rem;
-            margin-top: 6px;
-            color: #5c6f87;
-        }
     </style>
 </head>
 <body>
 
 <div class="preloader" id="preloader">
     <div class="spinner"></div>
-    <p>🔍 анализ подключения • загрузка данных</p>
+    <p>анализ подключения • загрузка данных</p>
 </div>
 
 <div class="container" id="mainContent" style="opacity: 0; transition: opacity 0.35s ease;">
     <div style="margin-bottom: 0.8rem;">
         <h1>ipfuscate.github.io</h1>
-        <p class="header-desc">анализ подключения · геолокация, IP, DNS, утечки</p>
+        <p class="header-desc">анализ подключения · геолокация, IP, безопасность</p>
     </div>
 
-    <!-- Основная карточка с IP и флагами -->
+    
     <div class="flat-card">
         <div class="flag-ip-row">
             <div class="flags-container" id="flagsContainer"></div>
@@ -334,51 +314,44 @@
             </div>
         </div>
         <div class="ipv6-line" id="ipv6Line">
-            <span class="info-label" style="display: inline-flex;">📡 IPv6</span>
+            <span class="info-label" style="display: inline-flex;">IPv6</span>
             <span class="info-value mono" id="ipv6addr" style="font-size: 0.9rem; display: inline-block; margin-left: 8px;">—</span>
         </div>
         <div class="country-block">
-            <div class="info-label">🌍 СТРАНА / РЕГИОН</div>
+            <div class="info-label">СТРАНА / РЕГИОН</div>
             <div class="country-name-large" id="countryName">загрузка...</div>
             <div id="dualFlagsContainer" class="dual-flags-below"></div>
         </div>
     </div>
 
-    <!-- Сетка из двух карточек: провайдер/гео + DNS/WEBRTC (убрано окно прокси/vpn) -->
+   
     <div class="grid-2">
-        <!-- Левая карточка: провайдер + гео + координаты -->
+  
         <div class="flat-card">
-            <div class="info-label">🏢 ИНТЕРНЕТ-ПРОВАЙДЕР / AS</div>
+            <div class="info-label">ИНТЕРНЕТ-ПРОВАЙДЕР / AS</div>
             <div class="info-value mono" id="isp" style="font-size: 1rem;">—</div>
             <hr>
-            <div class="info-label">📍 ГЕОГРАФИЧЕСКОЕ ПОЛОЖЕНИЕ</div>
+            <div class="info-label">ГЕОГРАФИЧЕСКОЕ ПОЛОЖЕНИЕ</div>
             <div class="info-value" id="locationDetail" style="font-size: 1rem;">—</div>
             <hr>
-            <div class="info-label">🗺️ КООРДИНАТЫ (LAT, LON)</div>
+            <div class="info-label">КООРДИНАТЫ (LAT, LON)</div>
             <div class="info-value mono" id="coords">—</div>
             <hr>
-            <div class="info-label">⏱️ ЧАСОВОЙ ПОЯС / ПОЧТОВЫЙ ИНДЕКС</div>
+            <div class="info-label">ЧАСОВОЙ ПОЯС / ПОЧТОВЫЙ ИНДЕКС</div>
             <div class="info-value" id="tzPostal">—</div>
         </div>
 
-        <!-- Правая карточка: DNS-утечки + WebRTC -->
+  
         <div class="flat-card">
-            <div class="info-label">🔍 DNS-УТЕЧКИ (РЕЗОЛВЕРЫ)</div>
-            <div class="info-value mono" id="dnsLeakInfo" style="font-size: 0.85rem;">анализ...</div>
-            <div id="dnsNote" class="dns-note"></div>
+            <div class="info-label">ТИП ПОДКЛЮЧЕНИЯ</div>
+            <div class="info-value" id="connectionType">—</div>
             <hr>
-            <div class="info-label">📹 WEBRTC (ЛОКАЛЬНЫЙ IP)</div>
+            <div class="info-label">ЛОКАЛЬНЫЙ IP (WEBRTC)</div>
             <div class="info-value mono" id="webrtcIp">—</div>
         </div>
     </div>
 
-    <!-- Карточка аномалий/рисков (без карты) -->
-    <div class="flat-card">
-        <div class="info-label">⚠️ АНОМАЛИИ / РИСКИ</div>
-        <div id="riskMessage" class="risk-box" style="background: #fef9e6; margin-top: 0;">—</div>
-    </div>
-
-    <div class="footer">ipfuscate.github.io • 6 резервных IP API • 🏅 красивый IP • защита приватности</div>
+    <div class="footer">ipfuscate.github.io • 6 резервных IP API • красивый IP • защита приватности</div>
 </div>
 
 <script>
@@ -386,7 +359,7 @@
         const preloader = document.getElementById('preloader');
         const mainContent = document.getElementById('mainContent');
         
-        // DOM элементы
+        // DOM
         const countryNameSpan = document.getElementById('countryName');
         const mainIpSpan = document.getElementById('mainIp');
         const ipDecorSpan = document.getElementById('ipDecorSpan');
@@ -396,12 +369,10 @@
         const locationDetailSpan = document.getElementById('locationDetail');
         const coordsSpan = document.getElementById('coords');
         const tzPostalSpan = document.getElementById('tzPostal');
-        const dnsLeakInfoSpan = document.getElementById('dnsLeakInfo');
-        const dnsNoteSpan = document.getElementById('dnsNote');
         const webrtcIpSpan = document.getElementById('webrtcIp');
-        const riskMessageSpan = document.getElementById('riskMessage');
         const dualFlagsContainer = document.getElementById('dualFlagsContainer');
         const flagsContainer = document.getElementById('flagsContainer');
+        const connectionTypeSpan = document.getElementById('connectionType');
 
         let ipv4Address = '—';
         let isProxyDetected = false;
@@ -489,7 +460,7 @@
             }
         }
 
-        // Объединённый запрос к 6 API
+        
         async function fetchGeoData() {
             const apis = [
                 { url: 'https://ipapi.co/json/', priority: 1, transform: (d) => ({
@@ -564,7 +535,7 @@
 
         async function loadAll() {
             try {
-                // 1) Геоданные
+             
                 const geo = await fetchGeoData();
                 ipv4Address = geo.ip;
                 let rawCountryCode = geo.country_code || 'UN';
@@ -578,7 +549,7 @@
                 const timezone = geo.timezone || '';
                 const postal = geo.postal || '';
 
-                // обработка прокси/хоста
+               
                 if (geo.proxy !== undefined) isProxyDetected = geo.proxy === true;
                 if (geo.hosting !== undefined) isHosting = geo.hosting === true;
                 if (geo.security) {
@@ -588,7 +559,7 @@
                 }
                 isVpnDetected = isProxyDetected || isHosting || isVpnDetected;
 
-                // Нормализация названий
+          
                 if (rawCountryCode === 'RU') countryFull = 'Russian Federation';
                 if (rawCountryCode === 'US') countryFull = 'United States';
                 if (rawCountryCode === 'GB') countryFull = 'United Kingdom';
@@ -623,48 +594,34 @@
                     tzPostalSpan.innerText = '—';
                 }
                 
-                // Двойные флаги внизу (спорные территории)
+          
                 dualFlagsContainer.innerHTML = '';
                 if (rawCountryCode !== 'TW') {
                     const { isGaza, isCrimea } = checkDisputed(regionName, city);
                     if (isGaza) {
-                        dualFlagsContainer.innerHTML = `<div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/PS/shiny/64.png"><span>Палестина (Газа) <span style="color:#5a6f84;">де-факто</span></span></div><div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/IL/shiny/64.png"><span>Израиль <span style="color:#5a6f84;">де-юре</span></span></div>`;
+                        dualFlagsContainer.innerHTML = `<div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/PS/shiny/64.png"><span>Палестина (Газа) де-факто</span></div><div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/IL/shiny/64.png"><span>Израиль де-юре</span></div>`;
                     } else if (isCrimea) {
-                        dualFlagsContainer.innerHTML = `<div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/RU/shiny/64.png"><span>Россия <span style="color:#5a6f84;">де-факто</span></span></div><div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/UA/shiny/64.png"><span>Украина <span style="color:#5a6f84;">де-юре</span></span></div>`;
+                        dualFlagsContainer.innerHTML = `<div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/RU/shiny/64.png"><span>Россия де-факто</span></div><div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/UA/shiny/64.png"><span>Украина де-юре</span></div>`;
                     } else if (['XK', 'AB', 'OS', 'EH'].includes(rawCountryCode)) {
                         const names = { 'XK': 'Косово', 'AB': 'Абхазия', 'OS': 'Южная Осетия', 'EH': 'САДР' };
                         const secondCodes = { 'XK': 'RS', 'AB': 'GE', 'OS': 'GE', 'EH': 'MA' };
                         const secondNames = { 'XK': 'Сербия', 'AB': 'Грузия', 'OS': 'Грузия', 'EH': 'Марокко' };
-                        dualFlagsContainer.innerHTML = `<div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/${rawCountryCode}/shiny/64.png"><span>${names[rawCountryCode]} <span style="color:#5a6f84;">де-факто</span></span></div><div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/${secondCodes[rawCountryCode]}/shiny/64.png"><span>${secondNames[rawCountryCode]} <span style="color:#5a6f84;">де-юре</span></span></div>`;
+                        dualFlagsContainer.innerHTML = `<div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/${rawCountryCode}/shiny/64.png"><span>${names[rawCountryCode]} де-факто</span></div><div class="dual-flag-item"><img class="dual-flag-img" src="https://flagsapi.com/${secondCodes[rawCountryCode]}/shiny/64.png"><span>${secondNames[rawCountryCode]} де-юре</span></div>`;
                     }
                 }
                 
-                // сообщение о рисках (без отдельного окна прокси)
+     
                 if (isProxyDetected) {
-                    riskMessageSpan.innerHTML = '🛡️ Обнаружен прокси или VPN-сервер. IP-адрес может не отражать реальное местоположение.';
+                    connectionTypeSpan.innerText = 'Прокси / VPN (обнаружен)';
                 } else if (isHosting) {
-                    riskMessageSpan.innerHTML = '⚠️ IP принадлежит дата-центру или хостингу — возможно использование VPN/прокси.';
+                    connectionTypeSpan.innerText = 'Хостинг / Дата-центр';
                 } else {
-                    riskMessageSpan.innerHTML = '✅ Прямое подключение без прокси/VPN. IP соответствует геолокации провайдера.';
+                    connectionTypeSpan.innerText = 'Прямое соединение (чистое)';
                 }
                 
-                // DNS-анализ
+      
                 let localIpDetected = await getWebRTCIp();
                 webrtcIpSpan.innerText = localIpDetected;
-                let leakRisk = false;
-                let dnsMsg = '';
-                if (ipv4Address !== '—' && localIpDetected && localIpDetected !== 'не обнаружен' && !localIpDetected.startsWith('192.168.') && !localIpDetected.startsWith('10.') && !localIpDetected.startsWith('172.') && localIpDetected !== ipv4Address) {
-                    leakRisk = true;
-                    dnsMsg = '⚠️ Потенциальная утечка DNS: локальный IP отличается от публичного.';
-                } else if (isVpnDetected) {
-                    leakRisk = true;
-                    dnsMsg = '⚠️ Используется прокси/VPN — возможны утечки DNS без DoH.';
-                } else {
-                    dnsMsg = 'DNS-запросы через системные резолверы. Риск утечки низкий.';
-                }
-                dnsLeakInfoSpan.innerText = dnsMsg;
-                dnsNoteSpan.innerHTML = '🔒 Рекомендуется DoH (Cloudflare 1.1.1.1) или Quad9 для защиты от утечек DNS.';
-                dnsNoteSpan.style.color = leakRisk ? '#b45a1b' : '#6c7e96';
                 
             } catch (err) {
                 console.error('Ошибка загрузки:', err);
@@ -674,12 +631,11 @@
                 locationDetailSpan.innerText = '—';
                 coordsSpan.innerText = '—';
                 tzPostalSpan.innerText = '—';
-                riskMessageSpan.innerHTML = '⚠️ Не удалось загрузить данные. Проверьте соединение или повторите попытку.';
-                dnsLeakInfoSpan.innerText = 'Анализ недоступен';
+                connectionTypeSpan.innerText = 'ошибка определения';
                 webrtcIpSpan.innerText = 'ошибка';
             }
 
-            // IPv6 отдельный запрос
+      
             try {
                 const v6Resp = await fetch('https://api64.ipify.org?format=json');
                 if (v6Resp.ok) {
@@ -698,10 +654,9 @@
             }
         }
 
-        // Основной запуск с прелоадером
+       
         (async function init() {
             await loadAll();
-            // Скрываем прелоадер и показываем контент
             preloader.classList.add('hide');
             setTimeout(() => {
                 preloader.style.display = 'none';
